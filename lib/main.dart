@@ -29,7 +29,6 @@ class _HomeState extends State<Home>{
   int portNo = 8888;
   String serverUrl = "http://";
   bool canStartServer = true;
-  bool canStopServer = false;
   var myserver;
   
 
@@ -82,14 +81,14 @@ class _HomeState extends State<Home>{
       } else {
         wifiName = await _networkInfo.getWifiName();
       }
-      debugPrint('android device wifi name : $wifiName');
+      //debugPrint('android device wifi name : $wifiName');
     } on Exception catch (e) {
       print(e.toString());
     }
 
     try {
       wifiIPv4 = await _networkInfo.getWifiIP();
-      debugPrint('Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
+      //debugPrint('Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
     } on Exception catch (e) {
       print(e.toString());
     }
@@ -98,8 +97,8 @@ class _HomeState extends State<Home>{
   startServer() async{
 
     await _initNetworkInfo();
-    debugPrint("User inputted dir ${dirController.text}");
-    debugPrint("User inputted port ${portController.text}");
+    //debugPrint("User inputted dir ${dirController.text}");
+    //debugPrint("User inputted port ${portController.text}");
 
     //Assign user inputted dir and port
     if(dirController.text != '')
@@ -108,13 +107,13 @@ class _HomeState extends State<Home>{
       portNo = int.parse(portController.text);
 
 
-    setState((){
+   /* setState((){
       //statusText = "Starting server on port : "+portNo.toString();
-      debugPrint('Inside startServer()');
-    });
+      //debugPrint('Inside startServer()');
+    });*/
   if (await Permission.storage.request().isGranted) {
-      debugPrint('is wifiName there ? : $wifiName');
-      debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
+      //debugPrint('is wifiName there ? : $wifiName');
+      //debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
       if(wifiName != null){ // wifiName detected start the server 
         HttpServer
         .bind(wifiIPv4.toString(), portNo)
@@ -124,10 +123,9 @@ class _HomeState extends State<Home>{
               statusText = "Server started on http://"+wifiIPv4.toString()+":"+portNo.toString();
               serverUrl = serverUrl+wifiIPv4.toString()+":"+portNo.toString();
               canStartServer = false;
-              canStopServer = true;
           });
           server.listen((HttpRequest request) async{
-            debugPrint('Received request ${request.method}: ${request.uri.path}');
+            //debugPrint('Received request ${request.method}: ${request.uri.path}');
             switch(request.method){
               case 'GET':
                 String currDir = '';
@@ -151,7 +149,7 @@ class _HomeState extends State<Home>{
                   request.response.flush();
                   request.response.close();
                   
-                  debugPrint("File download: $downloadFile");
+                  //debugPrint("File download: $downloadFile");
                 }
 
                 //If request is for a directory, add a link so that user can access the directory
@@ -169,15 +167,15 @@ class _HomeState extends State<Home>{
                     else //Current item is a directory
                       baseResponse = baseResponse + '<li><a href="${currDir+fileName+'/'}">$fileName</a>';
                   }
-                  baseResponse = baseResponse + '</body></html>';
+                  baseResponse = baseResponse + '</body><footer>Copyright &copy; Viki Inc 2021</footer></html>';
                   request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
                   request.response.write(baseResponse);
                   request.response.close();
-                  debugPrint("Directory download: $dirFiles");
+                  //debugPrint("Directory download: $dirFiles");
                 }
                 // Not a file or directory can be read from filesystem throw error
                 else{
-                  debugPrint("Error reading File/Directory");
+                  //debugPrint("Error reading File/Directory");
                   request.response.write('Error reading File/Directory ${request.method}: $currDir ');
                   request.response.close();
                 }
@@ -207,7 +205,6 @@ class _HomeState extends State<Home>{
     myserver.close(force : true);
     setState(() {// invoke widget build and change setState()
       canStartServer = true;
-      canStopServer = false;
       statusText = "Server stopped";
     });
   }
@@ -256,7 +253,7 @@ class _HomeState extends State<Home>{
                       child: Text("Start Server")
                     ),
                     ElevatedButton(
-                      onPressed: !canStopServer ? null : (){
+                      onPressed: canStartServer ? null : (){
                         stopServer();
                       },
                        child: Text("Stop Server"))
@@ -264,7 +261,7 @@ class _HomeState extends State<Home>{
                 ),
                 Text(statusText),
                 QrImage(data: serverUrl),
-                Text("Copyright Viki Inc 2021")
+                Text("Viki Inc")
               ],
             ),
             
