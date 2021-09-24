@@ -1,16 +1,19 @@
-# flutter_http_server
+# ServeIt
 
-A new Flutter project.
+A simple http-server on android using flutter.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+One app to serve them all
 
-A few resources to get you started if this is your first Flutter project:
+This app can start a http-server from an android/ios device binding to the port specified by the user (default 8888) and expose a directory from the device specified by the user (default dir /sdcard/Downloads).
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+Any device connected to the same wifi network and with a web browser, can navigate to the server url or scan the QR code to access the directory exposed
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Authentication
+
+Currently there is no authentication from app end. The app assumes anyone connected to the same wifi network as the user is already authenticated. Do not use the app in a public wifi.
+
+## License
+
+This project and its contents are open source under the [MIT License](https://github.com/darekkay/dashboard/blob/master/LICENSE)
