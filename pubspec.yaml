@@ -31,9 +31,10 @@ dependencies:
   network_info_plus: ^1.1.0
   permission_handler: ^8.1.4+2
   qr_flutter: ^4.0.0
-  flutter_launcher_icons: ^0.9.2
+  
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.9.2
   flutter_test:
     sdk: flutter
 
