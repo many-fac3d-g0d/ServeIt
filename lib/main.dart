@@ -81,14 +81,14 @@ class _HomeState extends State<Home>{
       } else {
         wifiName = await _networkInfo.getWifiName();
       }
-      //debugPrint('android device wifi name : $wifiName');
+      debugPrint('android device wifi name : $wifiName');
     } on Exception catch (e) {
       print(e.toString());
     }
 
     try {
       wifiIPv4 = await _networkInfo.getWifiIP();
-      //debugPrint('Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
+      debugPrint('Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
     } on Exception catch (e) {
       print(e.toString());
     }
@@ -97,8 +97,8 @@ class _HomeState extends State<Home>{
   startServer() async{
 
     await _initNetworkInfo();
-    //debugPrint("User inputted dir ${dirController.text}");
-    //debugPrint("User inputted port ${portController.text}");
+    debugPrint("User inputted dir ${dirController.text}");
+    debugPrint("User inputted port ${portController.text}");
 
     //Assign user inputted dir and port
     if(dirController.text != '')
@@ -109,12 +109,12 @@ class _HomeState extends State<Home>{
 
    /* setState((){
       //statusText = "Starting server on port : "+portNo.toString();
-      //debugPrint('Inside startServer()');
+      debugPrint('Inside startServer()');
     });*/
   if (await Permission.storage.request().isGranted) {
-      //debugPrint('is wifiName there ? : $wifiName');
-      //debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
-      if(wifiName != null){ // wifiName detected start the server 
+      debugPrint('is wifiName there ? : $wifiName');
+      debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
+      if(wifiIPv4 != null){ // wifiName can be null sometimes, hence using ip to decide start the server 
         HttpServer
         .bind(wifiIPv4.toString(), portNo)
         .then((server) {
@@ -125,7 +125,7 @@ class _HomeState extends State<Home>{
               canStartServer = false;
           });
           server.listen((HttpRequest request) async{
-            //debugPrint('Received request ${request.method}: ${request.uri.path}');
+            debugPrint('Received request ${request.method}: ${request.uri.path}');
             switch(request.method){
               case 'GET':
                 String currDir = '';
@@ -149,7 +149,7 @@ class _HomeState extends State<Home>{
                   request.response.flush();
                   request.response.close();
                   
-                  //debugPrint("File download: $downloadFile");
+                  debugPrint("File download: $downloadFile");
                 }
 
                 //If request is for a directory, add a link so that user can access the directory
@@ -171,11 +171,11 @@ class _HomeState extends State<Home>{
                   request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
                   request.response.write(baseResponse);
                   request.response.close();
-                  //debugPrint("Directory download: $dirFiles");
+                  debugPrint("Directory download: $dirFiles");
                 }
                 // Not a file or directory can be read from filesystem throw error
                 else{
-                  //debugPrint("Error reading File/Directory");
+                  debugPrint("Error reading File/Directory");
                   request.response.write('Error reading File/Directory ${request.method}: $currDir ');
                   request.response.close();
                 }
@@ -190,8 +190,11 @@ class _HomeState extends State<Home>{
           });
         });
       }
-      else// No wifi connection detected no point in server start 
+      else{// No wifi connection detected no point in server start 
+        setState(() {
           statusText = "No wifi connection detected, please connect to a wifi network";
+        });
+      }
 
     }else{
       setState(() {
@@ -223,7 +226,10 @@ class _HomeState extends State<Home>{
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                Text("Enter the directory path to share :"),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Text("Enter the directory path to share :"),
+                ),
                 Container(
                     width: 300.0,
                     child: TextField(
@@ -233,7 +239,10 @@ class _HomeState extends State<Home>{
                       )
                   )
                 ),
-                Text("Enter the port no :"),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Text("Enter the port no :"),
+                ),
                 Container(
                     width: 40.0,
                     child: TextField(
