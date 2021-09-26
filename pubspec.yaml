@@ -31,6 +31,7 @@ dependencies:
   network_info_plus: ^1.1.0
   permission_handler: ^8.1.4+2
   qr_flutter: ^4.0.0
+  flutter_logs: ^2.1.4
   
 
 dev_dependencies:

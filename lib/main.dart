@@ -4,6 +4,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter_logs/flutter_logs.dart';
 import 'dart:io';
 
 
@@ -29,6 +30,8 @@ class _HomeState extends State<Home>{
   int portNo = 8888;
   String serverUrl = "http://";
   bool canStartServer = true;
+  var _myLogFileName = "ServeIt.log";
+  var _tag = "ServeIt";
   var myserver;
   
 
@@ -62,6 +65,28 @@ class _HomeState extends State<Home>{
   void initState(){
     super.initState();
     _initNetworkInfo();
+    setUpLogs();
+  }
+
+  void setUpLogs() async {
+    await FlutterLogs.initLogs(
+        logLevelsEnabled: [
+          LogLevel.INFO,
+          LogLevel.WARNING,
+          LogLevel.ERROR,
+          LogLevel.SEVERE
+        ],
+        timeStampFormat: TimeStampFormat.TIME_FORMAT_READABLE,
+        directoryStructure: DirectoryStructure.FOR_DATE,
+        logTypesEnabled: [_myLogFileName],
+        logFileExtension: LogFileExtension.LOG,
+        logsWriteDirectoryName: "MyLogs",
+        logsExportDirectoryName: "MyLogs/Exported",
+        debugFileOperations: true,
+        isDebuggable: true);
+
+    // [IMPORTANT] The first log line must never be called before 'FlutterLogs.initLogs'
+    FlutterLogs.logInfo(_tag, "setUpLogs()", "setUpLogs: Setting up logs..");
   }
 
   //Handling Wifi network connection
@@ -82,13 +107,17 @@ class _HomeState extends State<Home>{
         wifiName = await _networkInfo.getWifiName();
       }
       debugPrint('android device wifi name : $wifiName');
+      FlutterLogs.logInfo(_tag, "_initNetworkInfo()", 'android device wifi name : $wifiName');
     } on Exception catch (e) {
       print(e.toString());
     }
 
     try {
       wifiIPv4 = await _networkInfo.getWifiIP();
+
       debugPrint('Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
+      FlutterLogs.logInfo(_tag, "_initNetworkInfo()", 'Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
+
     } on Exception catch (e) {
       print(e.toString());
     }
@@ -99,6 +128,8 @@ class _HomeState extends State<Home>{
     await _initNetworkInfo();
     debugPrint("User inputted dir ${dirController.text}");
     debugPrint("User inputted port ${portController.text}");
+    FlutterLogs.logInfo(_tag, "startServer()", "User inputted dir ${dirController.text}");
+    FlutterLogs.logInfo(_tag, "startServer()", "User inputted port ${portController.text}");
 
     //Assign user inputted dir and port
     if(dirController.text != '')
@@ -114,6 +145,9 @@ class _HomeState extends State<Home>{
   if (await Permission.storage.request().isGranted) {
       debugPrint('is wifiName there ? : $wifiName');
       debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
+      FlutterLogs.logInfo(_tag, "startServer()", 'is wifiName there ? : $wifiName');
+      FlutterLogs.logInfo(_tag, "startServer()", 'wifiIPv4 : ${wifiIPv4.toString()}');
+    
       if(wifiIPv4 != null){ // wifiName can be null sometimes, hence using ip to decide start the server 
         HttpServer
         .bind(wifiIPv4.toString(), portNo)
@@ -126,6 +160,7 @@ class _HomeState extends State<Home>{
           });
           server.listen((HttpRequest request) async{
             debugPrint('Received request ${request.method}: ${request.uri.path}');
+            FlutterLogs.logInfo(_tag, "server.listen()", 'Received request ${request.method}: ${request.uri.path}');
             switch(request.method){
               case 'GET':
                 String currDir = '';
@@ -150,6 +185,8 @@ class _HomeState extends State<Home>{
                   request.response.close();
                   
                   debugPrint("File download: $downloadFile");
+                  FlutterLogs.logInfo(_tag, "server.listen()", "File download: $downloadFile");
+            
                 }
 
                 //If request is for a directory, add a link so that user can access the directory
@@ -172,10 +209,14 @@ class _HomeState extends State<Home>{
                   request.response.write(baseResponse);
                   request.response.close();
                   debugPrint("Directory download: $dirFiles");
+                  FlutterLogs.logInfo(_tag, "server.listen()", "Directory download: $dirFiles");
+            
                 }
                 // Not a file or directory can be read from filesystem throw error
                 else{
                   debugPrint("Error reading File/Directory");
+                  FlutterLogs.logInfo(_tag, "server.listen()", 'Error reading File/Directory ${request.method}: $currDir ');
+
                   request.response.write('Error reading File/Directory ${request.method}: $currDir ');
                   request.response.close();
                 }
@@ -193,12 +234,14 @@ class _HomeState extends State<Home>{
       else{// No wifi connection detected no point in server start 
         setState(() {
           statusText = "No wifi connection detected, please connect to a wifi network";
+          FlutterLogs.logInfo(_tag, "wifiIPv4 == null", "No wifi connection detected, please connect to a wifi network");
         });
       }
 
     }else{
       setState(() {
         statusText = "Need file storage permissions to serve files";
+        FlutterLogs.logInfo(_tag, "Permission.storage.request() not Granted", "Need file storage permissions to serve files");
       });
     }
 
