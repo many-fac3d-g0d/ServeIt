@@ -1,6 +1,5 @@
 
 import 'package:flutter/material.dart';
-import 'package:network_info_plus/network_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -35,7 +34,6 @@ class _HomeState extends State<Home>{
   var myserver;
   
 
-  final NetworkInfo _networkInfo = NetworkInfo();
   final dirController = TextEditingController();
   final portController = TextEditingController();
   //File handler
@@ -64,8 +62,27 @@ class _HomeState extends State<Home>{
   @override
   void initState(){
     super.initState();
-    _initNetworkInfo();
     setUpLogs();
+  }
+
+  void getWifiIP() async{
+    wifiIPv4 = null;
+    //Handling Wifi IP Address
+    debugPrint("Interfaces Detected ${NetworkInterface.list()}");
+    for (var interface in await NetworkInterface.list()) {
+      debugPrint('Interface Detected : ${interface.name}');
+      if(interface.name == 'wlan0'){
+          for (var addr in interface.addresses){
+            debugPrint('IP Type : ${addr.type.name}');
+            if(addr.type.name == 'IPv4'){
+              wifiIPv4 = addr.address;
+              debugPrint('IP Type : ${addr.address}');
+              break;
+            }
+          }
+          break;
+      }
+    }
   }
 
   void setUpLogs() async {
@@ -89,43 +106,10 @@ class _HomeState extends State<Home>{
     FlutterLogs.logInfo(_tag, "setUpLogs()", "setUpLogs: Setting up logs..");
   }
 
-  //Handling Wifi network connection
-  Future<void> _initNetworkInfo() async {
-    try {
-      if (!kIsWeb && Platform.isIOS) {
-        var status = await _networkInfo.getLocationServiceAuthorization();
-        if (status == LocationAuthorizationStatus.notDetermined) {
-          status = await _networkInfo.requestLocationServiceAuthorization();
-        }
-        if (status == LocationAuthorizationStatus.authorizedAlways ||
-            status == LocationAuthorizationStatus.authorizedWhenInUse) {
-          wifiName = await _networkInfo.getWifiName();
-        } else {
-          wifiName = await _networkInfo.getWifiName();
-        }
-      } else {
-        wifiName = await _networkInfo.getWifiName();
-      }
-      debugPrint('android device wifi name : $wifiName');
-      FlutterLogs.logInfo(_tag, "_initNetworkInfo()", 'android device wifi name : $wifiName');
-    } on Exception catch (e) {
-      print(e.toString());
-    }
-
-    try {
-      wifiIPv4 = await _networkInfo.getWifiIP();
-
-      debugPrint('Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
-      FlutterLogs.logInfo(_tag, "_initNetworkInfo()", 'Inside _initNetworkInfo() wifiIPv4 : ${wifiIPv4.toString()}');
-
-    } on Exception catch (e) {
-      print(e.toString());
-    }
-  }
-
   startServer() async{
+    
+    getWifiIP();
 
-    await _initNetworkInfo();
     debugPrint("User inputted dir ${dirController.text}");
     debugPrint("User inputted port ${portController.text}");
     FlutterLogs.logInfo(_tag, "startServer()", "User inputted dir ${dirController.text}");
@@ -150,7 +134,7 @@ class _HomeState extends State<Home>{
     
       if(wifiIPv4 != null){ // wifiName can be null sometimes, hence using ip to decide start the server 
         HttpServer
-        .bind(wifiIPv4.toString(), portNo)
+        .bind(InternetAddress.anyIPv4, portNo)
         .then((server) {
           setState(() {
               myserver = server;// server instance will be required for stopServer()
@@ -312,7 +296,7 @@ class _HomeState extends State<Home>{
                   ]
                 ),
                 Text(statusText),
-                QrImage(data: serverUrl),
+                QrImage(data: serverUrl, size: 300.0,),
                 Text("Viki Inc")
               ],
             ),
