@@ -2,7 +2,7 @@
 
 A simple http-server on android using flutter.
 
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="drawing" width="200"/>](https://f-droid.org/en/packages/com.example.flutter_http_server/)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get It On F-Droid" width="200"/>](https://f-droid.org/en/packages/com.example.flutter_http_server/)
 
 ## Getting Started
 
