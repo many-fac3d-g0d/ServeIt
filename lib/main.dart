@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_logs/flutter_logs.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 
 
@@ -82,6 +83,19 @@ class _HomeState extends State<Home>{
           }
           break;
       }
+    }
+  }
+
+  void _selectFolder() async {
+    try {
+      String? path = await FilePicker.platform.getDirectoryPath();
+      if(path != null){
+        baseDir = path;
+        dirController.text = baseDir;
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+      FlutterLogs.logError(_tag, "_selectFolder()", "Error choosing dir ${e.toString()}");
     }
   }
 
@@ -255,27 +269,40 @@ class _HomeState extends State<Home>{
               children: <Widget>[
                 Padding(
                   padding: const EdgeInsets.all(10.0),
-                  child: Text("Enter the directory path to share :"),
+                  child: ElevatedButton(
+                          onPressed: () => _selectFolder(),
+                          child: const Text('Choose directory'),
+                        ),
                 ),
                 Container(
                     width: 300.0,
                     child: TextField(
                       controller: dirController,
-                      decoration: const InputDecoration(
-                      border: UnderlineInputBorder()
-                      )
+                      decoration: InputDecoration(
+                      border: new OutlineInputBorder(
+                          borderRadius: new BorderRadius.circular(25.0),
+                          borderSide: new BorderSide(
+                          ),
+                        ),
+                      hintText: "Directory path",
+                    )
                   )
                 ),
                 Padding(
                   padding: const EdgeInsets.all(10.0),
-                  child: Text("Enter the port no :"),
-                ),
-                Container(
-                    width: 40.0,
-                    child: TextField(
-                    controller: portController,
-                    decoration: const InputDecoration(
-                    border: UnderlineInputBorder()
+                  child: Container(
+                      width: 60.0,
+                      height: 40.0,
+                      child: TextField(
+                      controller: portController,
+                      decoration: InputDecoration(
+                      border: new OutlineInputBorder(
+                            borderRadius: new BorderRadius.circular(15.0),
+                            borderSide: new BorderSide(
+                            ),
+                          ),
+                      hintText: "Port",
+                      )
                     )
                   )
                 ),
