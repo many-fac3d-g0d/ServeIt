@@ -10,10 +10,18 @@ This app can start a http-server from an android/ios device binding to the port 
 
 Any device connected to the same wifi network and with a web browser, can navigate to the server url or scan the QR code to access the directory exposed
 
+##Screenshots
+
+![Scrshot 1](metadata/en-US/images/phoneScreenshots/1.PNG)
+![Scrshot 2](metadata/en-US/images/phoneScreenshots/2.PNG)
+![Scrshot 3](metadata/en-US/images/phoneScreenshots/3.PNG)
+![Scrshot 4](metadata/en-US/images/phoneScreenshots/4.PNG)
+
+
 ## Authentication
 
 Currently there is no authentication from app end. The app assumes anyone connected to the same wifi network as the user is already authenticated. Do not use the app in a public wifi.
 
 ## License
 
-This project and its contents are open source under the [MIT License](https://github.com/darekkay/dashboard/blob/master/LICENSE)
+This project and its contents are open source under the [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/)
