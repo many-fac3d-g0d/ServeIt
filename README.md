@@ -12,12 +12,12 @@ This app can start a http-server from an android/ios device binding to the port 
 
 Any device connected to the same wifi network and with a web browser, can navigate to the server url or scan the QR code to access the directory exposed
 
-##Screenshots
+## Screenshots
 
-![Scrshot 1](metadata/en-US/images/phoneScreenshots/1.PNG)
-![Scrshot 2](metadata/en-US/images/phoneScreenshots/2.PNG)
-![Scrshot 3](metadata/en-US/images/phoneScreenshots/3.PNG)
-![Scrshot 4](metadata/en-US/images/phoneScreenshots/4.PNG)
+[<img src="metadata/en-US/images/phoneScreenshots/1.png" alt="Scrshot 1" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/1.png)
+[<img src="metadata/en-US/images/phoneScreenshots/2.png" alt="Scrshot 2" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/2.png)
+[<img src="metadata/en-US/images/phoneScreenshots/3.png" alt="Scrshot 3" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/3.png)
+[<img src="metadata/en-US/images/phoneScreenshots/4.png" alt="Scrshot 4" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/4.png)
 
 
 ## Authentication
