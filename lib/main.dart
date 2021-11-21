@@ -269,12 +269,7 @@ class _HomeState extends State<Home>{
               children: <Widget>[
                 Padding(
                   padding: const EdgeInsets.all(10.0),
-                  child: ElevatedButton(
-                          onPressed: () => _selectFolder(),
-                          child: const Text('Choose directory'),
-                        ),
-                ),
-                Container(
+                  child: Container(
                     width: 300.0,
                     child: TextField(
                       controller: dirController,
@@ -287,7 +282,13 @@ class _HomeState extends State<Home>{
                       hintText: "Directory path",
                     )
                   )
+                  ),
                 ),
+                ElevatedButton(
+                          onPressed: () => _selectFolder(),
+                          child: const Text('Choose directory'),
+                        )
+                ,
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: Container(
