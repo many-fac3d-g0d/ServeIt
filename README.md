@@ -18,7 +18,7 @@ Any device connected to the same wifi network and with a web browser, can naviga
 [<img src="metadata/en-US/images/phoneScreenshots/2.png" alt="Scrshot 2" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/2.png)
 [<img src="metadata/en-US/images/phoneScreenshots/3.png" alt="Scrshot 3" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/3.png)
 [<img src="metadata/en-US/images/phoneScreenshots/4.png" alt="Scrshot 4" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/4.png)
-[<img src="metadata/en-US/images/phoneScreenshots/4.png" alt="Scrshot 4" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/5.png)
+[<img src="metadata/en-US/images/phoneScreenshots/5.png" alt="Scrshot 4" width="250" height="450"/>](metadata/en-US/images/phoneScreenshots/5.png)
 
 
 ## Authentication
