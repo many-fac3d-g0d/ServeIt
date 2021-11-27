@@ -24,6 +24,12 @@ Any device connected to the same wifi network and with a web browser, can naviga
 
 Currently there is no authentication from app end. The app assumes anyone connected to the same wifi network as the user is already authenticated. Do not use the app in a public wifi.
 
+## Donate
+
+Liked this project, want to contribute ? Consider donating
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://paypal.me/thisisviki?country.x=IN&locale.x=en_GB)
+
 ## License
 
 This project and its contents are open source under the [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/)
