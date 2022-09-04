@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_logs/flutter_logs.dart';
@@ -15,6 +16,25 @@ void main(){
       home: Home(),
       )
     );
+}
+
+class PortRangeFormatter extends TextInputFormatter {
+  final double min;
+  final double max;
+
+  PortRangeFormatter({required this.min, required this.max}): assert(
+          min < max,
+        );
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue,TextEditingValue newValue,) { 
+    if(newValue.text == '')
+      return TextEditingValue();
+    else if(int.parse(newValue.text) < min)
+      return TextEditingValue().copyWith(text: '1024');
+
+    return int.parse(newValue.text) > max ? TextEditingValue().copyWith(text: '65535') : newValue;
+  }
 }
 
 class Home extends StatefulWidget{
@@ -268,7 +288,7 @@ class _HomeState extends State<Home>{
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Padding(
-                  padding: const EdgeInsets.all(10.0),
+                  padding: const EdgeInsets.all(55.0),
                   child: Container(
                     width: 300.0,
                     child: TextField(
@@ -292,10 +312,14 @@ class _HomeState extends State<Home>{
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: Container(
-                      width: 60.0,
+                      width: 80.0,
                       height: 40.0,
                       child: TextField(
                       controller: portController,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(5),
+                        PortRangeFormatter(min: 1, max: 65535) //Accept only possible port no range
+                      ],
                       decoration: InputDecoration(
                       border: new OutlineInputBorder(
                             borderRadius: new BorderRadius.circular(15.0),
@@ -303,7 +327,9 @@ class _HomeState extends State<Home>{
                             ),
                           ),
                       hintText: "Port",
-                      )
+
+                      contentPadding: EdgeInsets.all(10.0),
+                      ),
                     )
                   )
                 ),
