@@ -30,8 +30,11 @@ dependencies:
   cupertino_icons: ^1.0.2
   permission_handler: ^8.1.4+2
   qr_flutter: ^4.0.0
-  flutter_logs: ^2.1.4
+  flutter_logs: ^2.1.11
   file_picker: ^4.2.0
+  animated_text_kit: ^4.2.2
+  url_launcher: 6.0.4
+  package_info_plus: 1.4.2
   
 
 dev_dependencies:
@@ -49,6 +52,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/icon/icon.PNG
 
   # To add assets to your application, add an assets section, like this:
   # assets:
