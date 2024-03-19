@@ -1,14 +1,19 @@
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+//import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_logs/flutter_logs.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
 
-
+Widget MyAppIcon(){
+  return Image.asset('assets/icon/icon.PNG', width: 50, height: 50);
+}
 void main(){
   runApp(
     MaterialApp(
@@ -43,7 +48,7 @@ class Home extends StatefulWidget{
 }
 
 class _HomeState extends State<Home>{
-  String statusText = "";
+  String statusText = "Server not started";
   String? wifiName, wifiIPv4;
   String baseDir = "/sdcard/Download";
   //default port to 8888
@@ -160,102 +165,110 @@ class _HomeState extends State<Home>{
       //statusText = "Starting server on port : "+portNo.toString();
       debugPrint('Inside startServer()');
     });*/
-  if (await Permission.storage.request().isGranted) {
+  if (await Permission.manageExternalStorage.request().isGranted || await Permission.storage.request().isGranted) {
       debugPrint('is wifiName there ? : $wifiName');
       debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
       FlutterLogs.logInfo(_tag, "startServer()", 'is wifiName there ? : $wifiName');
       FlutterLogs.logInfo(_tag, "startServer()", 'wifiIPv4 : ${wifiIPv4.toString()}');
     
-      if(wifiIPv4 != null){ // wifiName can be null sometimes, hence using ip to decide start the server 
-        HttpServer
-        .bind(InternetAddress.anyIPv4, portNo)
-        .then((server) {
-          setState(() {
-              myserver = server;// server instance will be required for stopServer()
-              statusText = "Server started on http://"+wifiIPv4.toString()+":"+portNo.toString();
-              serverUrl = serverUrl+wifiIPv4.toString()+":"+portNo.toString();
-              canStartServer = false;
-          });
-          server.listen((HttpRequest request) async{
-            debugPrint('Received request ${request.method}: ${request.uri.path}');
-            FlutterLogs.logInfo(_tag, "server.listen()", 'Received request ${request.method}: ${request.uri.path}');
-            switch(request.method){
-              case 'GET':
-                String currDir = '';
-                if(request.uri.path == '/')//For first GET add base url to '/'
-                  currDir = baseDir + Uri.decodeFull(request.uri.path);
-                else
-                  currDir = Uri.decodeFull(request.uri.path);
-                //If request is for a file, send the file in response to client
-                if(File(currDir).existsSync()){
-                  File downloadFile = getFile(currDir);
-                  var sink = downloadFile.openRead();
-                  String fileName = Uri.decodeFull(request.uri.path);
-
-                  List filePath = fileName.split('/');//Get filename from request path
-                  fileName = filePath.last;
-
-                  fileName = fileName.replaceAll(new RegExp(r'[^a-zA-Z0-9.]'), '_');//Sanitize filename to send in response
-
-                  request.response.headers.add("Content-Disposition", "attachment;  filename=$fileName");
-                  await request.response.addStream(sink);
-                  request.response.flush();
-                  request.response.close();
-                  
-                  debugPrint("File download: $downloadFile");
-                  FlutterLogs.logInfo(_tag, "server.listen()", "File download: $downloadFile");
-            
-                }
-
-                //If request is for a directory, add a link so that user can access the directory
-                else if(Directory(currDir).existsSync()){
-                  String baseResponse = "<html><head><h1><p>Directory listing</p></h1></head><body>";
-                  List dirFiles = getDir(currDir);
-                  for(var i=0; i<dirFiles.length; i++){
-                    List fileNamePath = dirFiles[i].toString().split('/');
-                    String fileName = fileNamePath.last.toString();
-                    String fileOrDir = fileNamePath.first.toString();
-                    fileName = fileName.substring(0,fileName.length - 1);
-
-                    if(fileOrDir.contains('File')) //Current item is a File
-                      baseResponse = baseResponse + '<li><a href="${currDir+fileName}">$fileName</a>';
-                    else //Current item is a directory
-                      baseResponse = baseResponse + '<li><a href="${currDir+fileName+'/'}">$fileName</a>';
-                  }
-                  baseResponse = baseResponse + '</body><footer>Copyright &copy; Viki Inc 2021</footer></html>';
-                  request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
-                  request.response.write(baseResponse);
-                  request.response.close();
-                  debugPrint("Directory download: $dirFiles");
-                  FlutterLogs.logInfo(_tag, "server.listen()", "Directory download: $dirFiles");
-            
-                }
-                // Not a file or directory can be read from filesystem throw error
-                else{
-                  debugPrint("Error reading File/Directory");
-                  FlutterLogs.logInfo(_tag, "server.listen()", 'Error reading File/Directory ${request.method}: $currDir ');
-
-                  request.response.write('Error reading File/Directory ${request.method}: $currDir ');
-                  request.response.close();
-                }
-                
-                break;
-              default:
-                request.response.write('Cannot ${request.method}: ${request.uri.path} ');
-                request.response.close();
-                break;
-
-              }
-          });
-        });
+      if(wifiIPv4 == null){ // wifiName can be null sometimes, hence using 127.0.0.1 when no ip address has been assigned 
+        wifiIPv4 = "127.0.0.1";
       }
-      else{// No wifi connection detected no point in server start 
+      HttpServer
+      .bind(InternetAddress.anyIPv4, portNo)
+      .then((server) {
         setState(() {
-          statusText = "No wifi connection detected, please connect to a wifi network";
-          FlutterLogs.logInfo(_tag, "wifiIPv4 == null", "No wifi connection detected, please connect to a wifi network");
+            myserver = server;// server instance will be required for stopServer()
+            statusText = "Server started on http://"+wifiIPv4.toString()+":"+portNo.toString();
+            serverUrl = serverUrl+wifiIPv4.toString()+":"+portNo.toString();
+            canStartServer = false;
         });
-      }
+        server.listen((HttpRequest request) async{
+          debugPrint('Received request ${request.method}: ${request.uri.path}');
+          FlutterLogs.logInfo(_tag, "server.listen()", 'Received request ${request.method}: ${request.uri.path}');
+          switch(request.method){
+            case 'GET':
+              String currDir = Uri.decodeFull(request.uri.path);
+              if(request.uri.path == '/')//For first GET add base url to '/'
+                currDir = baseDir + Uri.decodeFull(request.uri.path);
+              if (File(currDir + "index.html").existsSync()) {
+                debugPrint("Served Index File index.html from $currDir ");
+                currDir += "index.html";
+                File indexFile = getFile(currDir);
+                var sink = indexFile.openRead();
+                request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
+                await request.response.addStream(sink);
+                request.response.flush();
+                request.response.close();
 
+                
+                FlutterLogs.logInfo(_tag, "server.listen()", "Served Index File: $currDir");
+                break;
+              }
+              
+              //If request is for a file, send the file in response to client
+              if(File(currDir).existsSync()){
+                File downloadFile = getFile(currDir);
+                var sink = downloadFile.openRead();
+                String fileName = Uri.decodeFull(request.uri.path);
+
+                List filePath = fileName.split('/');//Get filename from request path
+                fileName = filePath.last;
+
+                fileName = fileName.replaceAll(new RegExp(r'[^a-zA-Z0-9.]'), '_');//Sanitize filename to send in response
+
+                request.response.headers.add("Content-Disposition", "attachment;  filename=$fileName");
+                await request.response.addStream(sink);
+                request.response.flush();
+                request.response.close();
+                
+                debugPrint("File download: $downloadFile");
+                FlutterLogs.logInfo(_tag, "server.listen()", "File download: $downloadFile");
+          
+              }
+
+              //If request is for a directory, add a link so that user can access the directory
+              else if(Directory(currDir).existsSync()){
+                String baseResponse = "<html><head><h1><p>Directory listing</p></h1></head><body>";
+                List dirFiles = getDir(currDir);
+                for(var i=0; i<dirFiles.length; i++){
+                  List fileNamePath = dirFiles[i].toString().split('/');
+                  String fileName = fileNamePath.last.toString();
+                  String fileOrDir = fileNamePath.first.toString();
+                  fileName = fileName.substring(0,fileName.length - 1);
+
+                  if(fileOrDir.contains('File')) //Current item is a File
+                    baseResponse = baseResponse + '<li>📄<a href="${currDir+fileName}">$fileName</a>';
+                  else //Current item is a directory
+                    baseResponse = baseResponse + '<li>📂<a href="${currDir+fileName+'/'}">$fileName</a>';
+                }
+                baseResponse = baseResponse + '</body><footer>Copyright &copy; Viki Inc 2021</footer></html>';
+                request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
+                request.response.write(baseResponse);
+                request.response.close();
+                debugPrint("Directory download: $dirFiles");
+                FlutterLogs.logInfo(_tag, "server.listen()", "Directory download: $dirFiles");
+          
+              }
+              // Not a file or directory can be read from filesystem throw error
+              else{
+                debugPrint("Error reading File/Directory");
+                FlutterLogs.logInfo(_tag, "server.listen()", 'Error reading File/Directory ${request.method}: $currDir ');
+
+                request.response.write('Error reading File/Directory ${request.method}: $currDir ');
+                request.response.close();
+              }
+              
+              break;
+            default:
+              request.response.write('Cannot ${request.method}: ${request.uri.path} ');
+              request.response.close();
+              break;
+
+            }
+        });
+      });
+      
     }else{
       setState(() {
         statusText = "Need file storage permissions to serve files";
@@ -279,6 +292,45 @@ class _HomeState extends State<Home>{
         appBar: AppBar(
           title: const Text('ServeIt')
          ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              const DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                ),
+                child: Text(
+                  'ServeIt',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: const Text('About'),
+                onTap: () async{
+                  debugPrint("About Page clicked");
+                  PackageInfo packageInfo = await PackageInfo.fromPlatform();
+                  showAboutDialog(
+                    context: context,
+                    applicationName: packageInfo.appName,
+                    applicationVersion: packageInfo.version,
+                    applicationIcon: MyAppIcon(),
+                    children: [
+                        Text(
+                        "Created by Viki Inc",
+                        textAlign: TextAlign.left
+                      )
+                    ]
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
         body: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(),
@@ -349,9 +401,23 @@ class _HomeState extends State<Home>{
                        child: Text("Stop Server"))
                   ]
                 ),
-                Text(statusText),
+                AnimatedTextKit(
+                  key: UniqueKey(),
+                  animatedTexts: [
+                    TypewriterAnimatedText(statusText)
+                  ],
+                  onTap: () async{
+                    if (statusText.contains('started')){
+                      final statusArray = statusText.split(' ');
+                      var _url = statusArray[statusArray.length-1];
+                      if (!await launch(_url)) {
+                        throw Exception('Could not launch $_url');
+                      }
+                    }
+                    
+                  },
+                ),
                 QrImage(data: serverUrl, size: 300.0,),
-                Text("Viki Inc")
               ],
             ),
             
