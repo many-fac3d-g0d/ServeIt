@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 //import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -9,7 +10,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+//import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'package:mime/mime.dart';
+import 'package:http_server/http_server.dart';
 
 Widget MyAppIcon(){
   return Image.asset('assets/icon/icon.PNG', width: 50, height: 50);
@@ -48,9 +53,10 @@ class Home extends StatefulWidget{
 }
 
 class _HomeState extends State<Home>{
-  String statusText = "Server not started";
+  String statusText = ">_ Server not started";
   String? wifiName, wifiIPv4;
   String baseDir = "/sdcard/Download";
+  String pathWalkDir = ""; // Storing current navigated dir in case of file upload
   //default port to 8888
   int portNo = 8888;
   String serverUrl = "http://";
@@ -179,7 +185,7 @@ class _HomeState extends State<Home>{
       .then((server) {
         setState(() {
             myserver = server;// server instance will be required for stopServer()
-            statusText = "Server started on http://"+wifiIPv4.toString()+":"+portNo.toString();
+            statusText = ">_ Server started on http://"+wifiIPv4.toString()+":"+portNo.toString();
             serverUrl = serverUrl+wifiIPv4.toString()+":"+portNo.toString();
             canStartServer = false;
         });
@@ -189,8 +195,10 @@ class _HomeState extends State<Home>{
           switch(request.method){
             case 'GET':
               String currDir = Uri.decodeFull(request.uri.path);
-              if(request.uri.path == '/')//For first GET add base url to '/'
+              if(request.uri.path == '/'){ //For first GET add base url to '/'
                 currDir = baseDir + Uri.decodeFull(request.uri.path);
+                pathWalkDir = currDir;
+                }
               if (File(currDir + "index.html").existsSync()) {
                 debugPrint("Served Index File index.html from $currDir ");
                 currDir += "index.html";
@@ -229,6 +237,7 @@ class _HomeState extends State<Home>{
 
               //If request is for a directory, add a link so that user can access the directory
               else if(Directory(currDir).existsSync()){
+                pathWalkDir = currDir;
                 String baseResponse = "<html><head><h1><p>Directory listing</p></h1></head><body>";
                 List dirFiles = getDir(currDir);
                 for(var i=0; i<dirFiles.length; i++){
@@ -242,7 +251,7 @@ class _HomeState extends State<Home>{
                   else //Current item is a directory
                     baseResponse = baseResponse + '<li>📂<a href="${currDir+fileName+'/'}">$fileName</a>';
                 }
-                baseResponse = baseResponse + '</body><footer>Copyright &copy; Viki Inc 2021</footer></html>';
+                baseResponse = baseResponse + '<form method="post" action="/" enctype="multipart/form-data"><br /><br /><input type="file" name="fileupload" /><br /><br /><button>Upload ⬆️</button></form></body><footer>Copyright &copy; Viki Inc 2021</footer></html>';
                 request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
                 request.response.write(baseResponse);
                 request.response.close();
@@ -259,6 +268,48 @@ class _HomeState extends State<Home>{
                 request.response.close();
               }
               
+              break;
+            case 'POST':
+              String currDir = pathWalkDir;
+              debugPrint('Request received: ${request.method} ${request.headers.contentType!.parameters['boundary']}, Dir: $currDir');
+              try{
+                //String content = await utf8.decoder.bind(request).join();
+                //debugPrint("Request: $content");
+                List<int> dataBytes = [];
+                await for (var data in request) {
+                  dataBytes.addAll(data);
+                }
+                String? boundary = request.headers.contentType?.parameters['boundary'];
+                final transformer = MimeMultipartTransformer(boundary.toString());
+                final uploadDirectory = '$currDir';
+                debugPrint("dataBytes: ${dataBytes.length}");
+                final bodyStream = Stream.fromIterable([dataBytes]);
+                final parts = await transformer.bind(bodyStream).toList();
+                debugPrint("Multiparts: $parts");
+                for (var part in parts) {
+                  debugPrint("Headers: ${part.headers.toString()}");
+                  final contentDisposition = part.headers['content-disposition'];
+                  final filename = RegExp(r'filename="([^"]*)"')
+                      .firstMatch(contentDisposition.toString())
+                      ?.group(1);
+                  debugPrint("Filename: $filename");
+                  final content = await part.toList();
+                  if (!Directory(uploadDirectory).existsSync()) {
+                    await Directory(uploadDirectory).create();
+                  }
+                  await File('$uploadDirectory/$filename').writeAsBytes(content[0]);
+                  FlutterLogs.logInfo(_tag, "server.listen()", "$filename uploaded successfully");
+                }
+                request.response.redirect(Uri(
+                  path: pathWalkDir
+                ));
+              } catch (e) {
+                print('Error uploading file: $e');
+                request.response.write('Error uploading file: $e');
+              }
+              finally {
+                await request.response.close();
+              }
               break;
             default:
               request.response.write('Cannot ${request.method}: ${request.uri.path} ');
@@ -282,7 +333,7 @@ class _HomeState extends State<Home>{
     myserver.close(force : true);
     setState(() {// invoke widget build and change setState()
       canStartServer = true;
-      statusText = "Server stopped";
+      statusText = ">_ Server stopped";
     });
   }
 
@@ -320,10 +371,29 @@ class _HomeState extends State<Home>{
                     applicationVersion: packageInfo.version,
                     applicationIcon: MyAppIcon(),
                     children: [
-                        Text(
-                        "Created by Viki Inc",
-                        textAlign: TextAlign.left
+                      InkWell(
+                          child: RichText(
+                              text: new TextSpan(
+                                children: [
+                                  new TextSpan(
+                                    text: "Created with ❤️ by ",
+                                    style: new TextStyle(color: Colors.black),
+                                  ),
+                                  new TextSpan(
+                                    text: "Viki Inc",
+                                    style: new TextStyle(color: Colors.blue),
+                                    recognizer: new TapGestureRecognizer()
+                                    ..onTap = () async{
+                                      if (!await launch("https://vignesh-nandakumar.com/")) {
+                                        throw Exception('Could not launch https://vignesh-nandakumar.com/');
+                                      }
+                                    }
+                                  )
+                                ],
+                              ),
+                            ),
                       )
+                      
                     ]
                   );
                 },
@@ -401,26 +471,40 @@ class _HomeState extends State<Home>{
                        child: Text("Stop Server"))
                   ]
                 ),
-                AnimatedTextKit(
-                  key: UniqueKey(),
-                  animatedTexts: [
-                    TypewriterAnimatedText(statusText)
-                  ],
-                  onTap: () async{
-                    if (statusText.contains('started')){
-                      final statusArray = statusText.split(' ');
-                      var _url = statusArray[statusArray.length-1];
-                      if (!await launch(_url)) {
-                        throw Exception('Could not launch $_url');
-                      }
-                    }
-                    
-                  },
-                ),
+                
                 QrImage(data: serverUrl, size: 300.0,),
+                Container(
+                  padding: EdgeInsets.only(left: 30,right: 30),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(5.0),
+                    child: Container(
+                      color: Colors.black,
+                      height: 100,
+                      width: 290,
+                      child: AnimatedTextKit(
+                        key: UniqueKey(),
+                        animatedTexts: [
+                          TypewriterAnimatedText(
+                            statusText,
+                            textStyle: TextStyle(color: Colors.blue)
+                          )
+                        ],
+                        onTap: () async{
+                          if (statusText.contains('started')){
+                            final statusArray = statusText.split(' ');
+                            var _url = statusArray[statusArray.length-1];
+                            if (!await launch(_url)) {
+                              throw Exception('Could not launch $_url');
+                            }
+                          }
+                          
+                        },
+                      ),
+                    ),
+                  ),
+                ), 
               ],
             ),
-            
           ),
         ),)
       );
