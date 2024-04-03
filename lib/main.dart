@@ -12,9 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 //import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'dart:io';
-import 'dart:convert';
 import 'package:mime/mime.dart';
-import 'package:http_server/http_server.dart';
 
 Widget MyAppIcon(){
   return Image.asset('assets/icon/icon.PNG', width: 50, height: 50);
@@ -238,7 +236,7 @@ class _HomeState extends State<Home>{
               //If request is for a directory, add a link so that user can access the directory
               else if(Directory(currDir).existsSync()){
                 pathWalkDir = currDir;
-                String baseResponse = "<html><head><h1><p>Directory listing</p></h1></head><body>";
+                String baseResponse = '<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous"><h1><p>Directory listing</p></h1></head><body>';
                 List dirFiles = getDir(currDir);
                 for(var i=0; i<dirFiles.length; i++){
                   List fileNamePath = dirFiles[i].toString().split('/');
@@ -251,7 +249,7 @@ class _HomeState extends State<Home>{
                   else //Current item is a directory
                     baseResponse = baseResponse + '<li>📂<a href="${currDir+fileName+'/'}">$fileName</a>';
                 }
-                baseResponse = baseResponse + '<form method="post" action="/" enctype="multipart/form-data"><br /><br /><input type="file" name="fileupload" /><br /><br /><button>Upload ⬆️</button></form></body><footer>Copyright &copy; Viki Inc 2021</footer></html>';
+                baseResponse = baseResponse + '<form method="post" action="/" enctype="multipart/form-data"><br /><br /><div class="input-group mb-3"><input type="file" name="fileupload" class="form-control" id="customFile"/><br /><button class="btn btn-primary" data-mdb-ripple-init>Upload ⬆️</button></div></form></body><footer><a href="https://vignesh-nandakumar.com/">Copyright &copy; Viki Inc 2021</a></footer></html>';
                 request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
                 request.response.write(baseResponse);
                 request.response.close();
@@ -275,29 +273,25 @@ class _HomeState extends State<Home>{
               try{
                 //String content = await utf8.decoder.bind(request).join();
                 //debugPrint("Request: $content");
-                List<int> dataBytes = [];
-                await for (var data in request) {
-                  dataBytes.addAll(data);
-                }
                 String? boundary = request.headers.contentType?.parameters['boundary'];
                 final transformer = MimeMultipartTransformer(boundary.toString());
                 final uploadDirectory = '$currDir';
-                debugPrint("dataBytes: ${dataBytes.length}");
-                final bodyStream = Stream.fromIterable([dataBytes]);
-                final parts = await transformer.bind(bodyStream).toList();
+                final parts = await transformer.bind(request);
                 debugPrint("Multiparts: $parts");
-                for (var part in parts) {
+                await for (var part in parts) {
                   debugPrint("Headers: ${part.headers.toString()}");
                   final contentDisposition = part.headers['content-disposition'];
                   final filename = RegExp(r'filename="([^"]*)"')
                       .firstMatch(contentDisposition.toString())
                       ?.group(1);
                   debugPrint("Filename: $filename");
-                  final content = await part.toList();
+                  final contentStream = await part.cast<List<int>>();
                   if (!Directory(uploadDirectory).existsSync()) {
                     await Directory(uploadDirectory).create();
                   }
-                  await File('$uploadDirectory/$filename').writeAsBytes(content[0]);
+                  await contentStream.forEach((data) async{
+                    File('$uploadDirectory/$filename').writeAsBytesSync(data, mode: FileMode.append);
+                  });
                   FlutterLogs.logInfo(_tag, "server.listen()", "$filename uploaded successfully");
                 }
                 request.response.redirect(Uri(
@@ -334,6 +328,7 @@ class _HomeState extends State<Home>{
     setState(() {// invoke widget build and change setState()
       canStartServer = true;
       statusText = ">_ Server stopped";
+      serverUrl = "http://";
     });
   }
 
