@@ -68,22 +68,22 @@ android {
    }
 
    //Adding product flavors for fdroid
-//    flavorDimensions "deploy"
+   flavorDimensions "deploy"
 
-//     productFlavors {
-//         fdroid {
-//             dimension "deploy"
-//             signingConfig null
-//         }
-//     }
+    productFlavors {
+        fdroid {
+            dimension "deploy"
+            signingConfig null
+        }
+    }
 
-//     android.applicationVariants.all { variant ->
-//         if (variant.flavorName == "fdroid") {
-//             variant.outputs.all { output ->
-//                 output.outputFileName = "app-fdroid-release.apk"
-//             }
-//         }
-//     }
+    android.applicationVariants.all { variant ->
+        if (variant.flavorName == "fdroid") {
+            variant.outputs.all { output ->
+                output.outputFileName = "app-fdroid-release.apk"
+            }
+        }
+    }
 }
 
 flutter {
