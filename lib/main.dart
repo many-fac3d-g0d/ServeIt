@@ -475,7 +475,7 @@ class _HomeState extends State<Home>{
                     child: Container(
                       color: Colors.black,
                       height: 100,
-                      width: 290,
+                      width: 350,
                       child: AnimatedTextKit(
                         key: UniqueKey(),
                         animatedTexts: [
