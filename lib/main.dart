@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 //import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -9,7 +10,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+//import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'dart:io';
+import 'package:mime/mime.dart';
 
 Widget MyAppIcon(){
   return Image.asset('assets/icon/icon.PNG', width: 50, height: 50);
@@ -48,9 +51,10 @@ class Home extends StatefulWidget{
 }
 
 class _HomeState extends State<Home>{
-  String statusText = "Server not started";
+  String statusText = ">_ Server not started";
   String? wifiName, wifiIPv4;
   String baseDir = "/sdcard/Download";
+  String pathWalkDir = ""; // Storing current navigated dir in case of file upload
   //default port to 8888
   int portNo = 8888;
   String serverUrl = "http://";
@@ -179,7 +183,7 @@ class _HomeState extends State<Home>{
       .then((server) {
         setState(() {
             myserver = server;// server instance will be required for stopServer()
-            statusText = "Server started on http://"+wifiIPv4.toString()+":"+portNo.toString();
+            statusText = ">_ Server started on http://"+wifiIPv4.toString()+":"+portNo.toString();
             serverUrl = serverUrl+wifiIPv4.toString()+":"+portNo.toString();
             canStartServer = false;
         });
@@ -189,8 +193,10 @@ class _HomeState extends State<Home>{
           switch(request.method){
             case 'GET':
               String currDir = Uri.decodeFull(request.uri.path);
-              if(request.uri.path == '/')//For first GET add base url to '/'
+              if(request.uri.path == '/'){ //For first GET add base url to '/'
                 currDir = baseDir + Uri.decodeFull(request.uri.path);
+                pathWalkDir = currDir;
+                }
               if (File(currDir + "index.html").existsSync()) {
                 debugPrint("Served Index File index.html from $currDir ");
                 currDir += "index.html";
@@ -229,7 +235,8 @@ class _HomeState extends State<Home>{
 
               //If request is for a directory, add a link so that user can access the directory
               else if(Directory(currDir).existsSync()){
-                String baseResponse = "<html><head><h1><p>Directory listing</p></h1></head><body>";
+                pathWalkDir = currDir;
+                String baseResponse = '<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous"><h1><p>Directory listing</p></h1></head><body>';
                 List dirFiles = getDir(currDir);
                 for(var i=0; i<dirFiles.length; i++){
                   List fileNamePath = dirFiles[i].toString().split('/');
@@ -242,7 +249,7 @@ class _HomeState extends State<Home>{
                   else //Current item is a directory
                     baseResponse = baseResponse + '<li>📂<a href="${currDir+fileName+'/'}">$fileName</a>';
                 }
-                baseResponse = baseResponse + '</body><footer>Copyright &copy; Viki Inc 2021</footer></html>';
+                baseResponse = baseResponse + '<form method="post" action="/" enctype="multipart/form-data"><br /><br /><div class="input-group mb-3"><input type="file" name="fileupload" class="form-control" id="customFile"/><br /><button class="btn btn-primary" data-mdb-ripple-init>Upload ⬆️</button></div></form></body><footer><a href="https://vignesh-nandakumar.com/">Copyright &copy; Viki Inc 2021</a></footer></html>';
                 request.response.headers.contentType =new ContentType('text','html',charset : 'utf-8');
                 request.response.write(baseResponse);
                 request.response.close();
@@ -259,6 +266,44 @@ class _HomeState extends State<Home>{
                 request.response.close();
               }
               
+              break;
+            case 'POST':
+              String currDir = pathWalkDir;
+              debugPrint('Request received: ${request.method} ${request.headers.contentType!.parameters['boundary']}, Dir: $currDir');
+              try{
+                //String content = await utf8.decoder.bind(request).join();
+                //debugPrint("Request: $content");
+                String? boundary = request.headers.contentType?.parameters['boundary'];
+                final transformer = MimeMultipartTransformer(boundary.toString());
+                final uploadDirectory = '$currDir';
+                final parts = await transformer.bind(request);
+                debugPrint("Multiparts: $parts");
+                await for (var part in parts) {
+                  debugPrint("Headers: ${part.headers.toString()}");
+                  final contentDisposition = part.headers['content-disposition'];
+                  final filename = RegExp(r'filename="([^"]*)"')
+                      .firstMatch(contentDisposition.toString())
+                      ?.group(1);
+                  debugPrint("Filename: $filename");
+                  final contentStream = await part.cast<List<int>>();
+                  if (!Directory(uploadDirectory).existsSync()) {
+                    await Directory(uploadDirectory).create();
+                  }
+                  await contentStream.forEach((data) async{
+                    File('$uploadDirectory/$filename').writeAsBytesSync(data, mode: FileMode.append);
+                  });
+                  FlutterLogs.logInfo(_tag, "server.listen()", "$filename uploaded successfully");
+                }
+                request.response.redirect(Uri(
+                  path: pathWalkDir
+                ));
+              } catch (e) {
+                print('Error uploading file: $e');
+                request.response.write('Error uploading file: $e');
+              }
+              finally {
+                await request.response.close();
+              }
               break;
             default:
               request.response.write('Cannot ${request.method}: ${request.uri.path} ');
@@ -282,7 +327,8 @@ class _HomeState extends State<Home>{
     myserver.close(force : true);
     setState(() {// invoke widget build and change setState()
       canStartServer = true;
-      statusText = "Server stopped";
+      statusText = ">_ Server stopped";
+      serverUrl = "http://";
     });
   }
 
@@ -320,10 +366,29 @@ class _HomeState extends State<Home>{
                     applicationVersion: packageInfo.version,
                     applicationIcon: MyAppIcon(),
                     children: [
-                        Text(
-                        "Created by Viki Inc",
-                        textAlign: TextAlign.left
+                      InkWell(
+                          child: RichText(
+                              text: new TextSpan(
+                                children: [
+                                  new TextSpan(
+                                    text: "Created with ❤️ by ",
+                                    style: new TextStyle(color: Colors.black),
+                                  ),
+                                  new TextSpan(
+                                    text: "Viki Inc",
+                                    style: new TextStyle(color: Colors.blue),
+                                    recognizer: new TapGestureRecognizer()
+                                    ..onTap = () async{
+                                      if (!await launch("https://vignesh-nandakumar.com/")) {
+                                        throw Exception('Could not launch https://vignesh-nandakumar.com/');
+                                      }
+                                    }
+                                  )
+                                ],
+                              ),
+                            ),
                       )
+                      
                     ]
                   );
                 },
@@ -401,26 +466,40 @@ class _HomeState extends State<Home>{
                        child: Text("Stop Server"))
                   ]
                 ),
-                AnimatedTextKit(
-                  key: UniqueKey(),
-                  animatedTexts: [
-                    TypewriterAnimatedText(statusText)
-                  ],
-                  onTap: () async{
-                    if (statusText.contains('started')){
-                      final statusArray = statusText.split(' ');
-                      var _url = statusArray[statusArray.length-1];
-                      if (!await launch(_url)) {
-                        throw Exception('Could not launch $_url');
-                      }
-                    }
-                    
-                  },
-                ),
+                
                 QrImage(data: serverUrl, size: 300.0,),
+                Container(
+                  padding: EdgeInsets.only(left: 30,right: 30),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(5.0),
+                    child: Container(
+                      color: Colors.black,
+                      height: 100,
+                      width: 350,
+                      child: AnimatedTextKit(
+                        key: UniqueKey(),
+                        animatedTexts: [
+                          TypewriterAnimatedText(
+                            statusText,
+                            textStyle: TextStyle(color: Colors.blue)
+                          )
+                        ],
+                        onTap: () async{
+                          if (statusText.contains('started')){
+                            final statusArray = statusText.split(' ');
+                            var _url = statusArray[statusArray.length-1];
+                            if (!await launch(_url)) {
+                              throw Exception('Could not launch $_url');
+                            }
+                          }
+                          
+                        },
+                      ),
+                    ),
+                  ),
+                ), 
               ],
             ),
-            
           ),
         ),)
       );
