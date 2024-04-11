@@ -41,9 +41,9 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.example.flutter_http_server"
+        applicationId "com.vignesh.nandakumar.serveit"
         minSdkVersion 16
-        targetSdkVersion 30
+        targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
@@ -66,24 +66,28 @@ android {
            signingConfig signingConfigs.release
        }
    }
+   compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
 
    //Adding product flavors for fdroid
-   flavorDimensions "deploy"
+//    flavorDimensions "deploy"
 
-    productFlavors {
-        fdroid {
-            dimension "deploy"
-            signingConfig null
-        }
-    }
+//     productFlavors {
+//         fdroid {
+//             dimension "deploy"
+//             signingConfig null
+//         }
+//     }
 
-    android.applicationVariants.all { variant ->
-        if (variant.flavorName == "fdroid") {
-            variant.outputs.all { output ->
-                output.outputFileName = "app-fdroid-release.apk"
-            }
-        }
-    }
+//     android.applicationVariants.all { variant ->
+//         if (variant.flavorName == "fdroid") {
+//             variant.outputs.all { output ->
+//                 output.outputFileName = "app-fdroid-release.apk"
+//             }
+//         }
+//     }
 }
 
 flutter {

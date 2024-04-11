@@ -1,4 +1,4 @@
-package com.example.flutter_http_server
+package com.vignesh.nandakumar.serveit
 
 import io.flutter.embedding.android.FlutterActivity
 
