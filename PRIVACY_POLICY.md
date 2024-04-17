@@ -18,7 +18,6 @@ https://github.com/many-fac3d-g0d/ServeIt/blob/05aa0b72757520886b3e124ae4d2acc17
 | :---: | --- |
 | `android.permission.WRITE_EXTERNAL_STORAGE` | Used to write files uploaded from the http server started by the app to the User specified directory for sharing inside local network. |
 | `android.permission.READ_EXTERNAL_STORAGE` | Used to read the files from User specified directory and serve it via the http server started by the app inside local network. |
-| `android.permission.MANAGE_EXTERNAL_STORAGE` | Used to read all files from the User specified directory, not just media files. |
 
  <hr style="border:1px solid gray">
 
