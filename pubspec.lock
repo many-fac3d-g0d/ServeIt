@@ -241,13 +241,13 @@ packages:
     source: hosted
     version: "1.8.3"
   permission_handler:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: permission_handler
-      sha256: ae51809c535fd765061c7384a67bc24d304d24cfc455c59e2f6a5cec9a37fc9c
+      sha256: "33c6a1253d1f95fd06fa74b65b7ba907ae9811f9d5c1d3150e51417d04b8d6a8"
       url: "https://pub.dev"
     source: hosted
-    version: "10.0.0"
+    version: "10.2.0"
   permission_handler_android:
     dependency: transitive
     description:
@@ -320,6 +320,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  saf:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: master
+      resolved-ref: "1294d4825ac0171d09571be494cccf034a48424b"
+      url: "https://github.com/tomekit/saf.git"
+    source: git
+    version: "1.0.3+3"
   sky_engine:
     dependency: transitive
     description: flutter

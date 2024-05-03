@@ -1,18 +1,22 @@
 
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 //import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
+//import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_logs/flutter_logs.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+//import 'package:shared_storage/shared_storage.dart';
 //import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'dart:io';
 import 'package:mime/mime.dart';
+import 'package:saf/saf.dart';
 
 Widget MyAppIcon(){
   return Image.asset('assets/icon/icon.PNG', width: 50, height: 50);
@@ -53,7 +57,7 @@ class Home extends StatefulWidget{
 class _HomeState extends State<Home>{
   String statusText = ">_ Server not started";
   String? wifiName, wifiIPv4;
-  String baseDir = "/sdcard/Download";
+  String baseDir = "/storage/emulated/0/Android/data/com.vignesh.nandakumar.serveit/files";
   String pathWalkDir = ""; // Storing current navigated dir in case of file upload
   //default port to 8888
   int portNo = 8888;
@@ -62,6 +66,10 @@ class _HomeState extends State<Home>{
   var _myLogFileName = "ServeIt.log";
   var _tag = "ServeIt";
   var myserver;
+  Saf saf = Saf("Android/data/com.vignesh.nandakumar.serveit/files");
+  bool? isPermissionGranted = false;
+  String baseDirUri = "";
+  bool fileCreated = false;
   
 
   final dirController = TextEditingController();
@@ -87,6 +95,25 @@ class _HomeState extends State<Home>{
     Directory thisDir = new Directory(dirName);
     List dirFiles = thisDir.listSync();
     return dirFiles;
+  }
+
+  String makeUriString({String path = "", bool isTreeUri = false}) {
+  String uri = "";
+  String base =
+      "content://com.android.externalstorage.documents/tree/primary%3A";
+  String documentUri = "/document/primary%3A" +
+      path.replaceAll("/", "%2F").replaceAll(" ", "%20");
+  if (isTreeUri) {
+    uri = base + path.replaceAll("/", "%2F").replaceAll(" ", "%20");
+  } else {
+    var pathSegments = path.split("/");
+    var fileName = pathSegments[pathSegments.length - 1];
+    var directory = path.split("/$fileName")[0];
+    uri = base +
+        directory.replaceAll("/", "%2F").replaceAll(" ", "%20") +
+        documentUri;
+  }
+  return uri;
   }
 
   @override
@@ -121,6 +148,18 @@ class _HomeState extends State<Home>{
       if(path != null){
         baseDir = path;
         dirController.text = baseDir;
+      }
+      String baseDirSaf = baseDir.replaceAll('/storage/emulated/0/', '');
+      saf = Saf(baseDirSaf);
+      isPermissionGranted = await saf.getDirectoryPermission(grantWritePermission: true,isDynamic: true);
+      var fileUriPaths = await saf.getUriPath();
+      debugPrint('baseDir ? : $baseDir');
+      debugPrint('baseDir ? : $baseDirSaf');
+      debugPrint('Inside _selectFolder isPermissionGranted ? : $isPermissionGranted');
+      debugPrint('Inside _selectFolder fileUriPaths ? : $fileUriPaths');
+      if(isPermissionGranted == true){
+        baseDirUri = makeUriString(path: baseDirSaf);
+        debugPrint('Inside _selectFolder fileUriPaths ? : $baseDirUri');
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -164,12 +203,13 @@ class _HomeState extends State<Home>{
     if(portController.text != '')
       portNo = int.parse(portController.text);
 
-
    /* setState((){
       //statusText = "Starting server on port : "+portNo.toString();
       debugPrint('Inside startServer()');
     });*/
-  if (await Permission.manageExternalStorage.request().isGranted || await Permission.storage.request().isGranted) {
+    
+    debugPrint('isPermissionGranted ? : $isPermissionGranted');
+  if (isPermissionGranted == true) {
       debugPrint('is wifiName there ? : $wifiName');
       debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
       FlutterLogs.logInfo(_tag, "startServer()", 'is wifiName there ? : $wifiName');
@@ -268,6 +308,7 @@ class _HomeState extends State<Home>{
               
               break;
             case 'POST':
+              fileCreated = false;
               String currDir = pathWalkDir;
               debugPrint('Request received: ${request.method} ${request.headers.contentType!.parameters['boundary']}, Dir: $currDir');
               try{
@@ -289,8 +330,31 @@ class _HomeState extends State<Home>{
                   if (!Directory(uploadDirectory).existsSync()) {
                     await Directory(uploadDirectory).create();
                   }
+                  var safDirs = await Saf.getPersistedPermissionDirectories();
+                  debugPrint("SAF directory permissions $safDirs");
+                  String fileUri = makeUriString(path: "$currDir$filename".replaceAll('/storage/emulated/0/', ''));
+                  String uploadDirectoryUri = makeUriString(path: "$currDir".replaceAll('/storage/emulated/0/', ''));
                   await contentStream.forEach((data) async{
-                    File('$uploadDirectory/$filename').writeAsBytesSync(data, mode: FileMode.append);
+                    // File('$uploadDirectory/$filename').writeAsBytesSync(data, mode: FileMode.append);
+                    if(!fileCreated){
+                      fileCreated = true; // Create file if it is not already created since appendFile cannot create fileUri for non existing file
+                      Map<String, dynamic>? result = await MethodChannel('com.ivehement.plugins/saf/documentfile').invokeMapMethod<String, dynamic>('createFile', <String, dynamic>{
+                      'mimeType': 'any',
+                      'content': data,
+                      'displayName': filename,
+                      'directoryUri': '$uploadDirectoryUri',
+                      });
+                      debugPrint("Created file first ? $result");
+                    }
+                    else{
+                      var result = await MethodChannel('com.vignesh.nandakumar.serveit/documentfile').invokeMethod('appendFile',{
+                      'content': data,
+                      'fileUri': '$fileUri',
+                      'filename': '$filename'
+                      });
+                      debugPrint("Appended file content ? $result");
+                    }
+                    
                   });
                   FlutterLogs.logInfo(_tag, "server.listen()", "$filename uploaded successfully");
                 }
