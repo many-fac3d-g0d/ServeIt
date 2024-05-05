@@ -1,6 +1,4 @@
 
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 //import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -18,7 +16,7 @@ import 'dart:io';
 import 'package:mime/mime.dart';
 import 'package:saf/saf.dart';
 
-Widget MyAppIcon(){
+Widget myAppIcon(){
   return Image.asset('assets/icon/icon.PNG', width: 50, height: 50);
 }
 void main(){
@@ -56,7 +54,7 @@ class Home extends StatefulWidget{
 
 class _HomeState extends State<Home>{
   String statusText = ">_ Server not started";
-  String? wifiName, wifiIPv4;
+  String? wifiIPv4;
   String baseDir = "/storage/emulated/0/Android/data/com.vignesh.nandakumar.serveit/files";
   String pathWalkDir = ""; // Storing current navigated dir in case of file upload
   //default port to 8888
@@ -98,22 +96,22 @@ class _HomeState extends State<Home>{
   }
 
   String makeUriString({String path = "", bool isTreeUri = false}) {
-  String uri = "";
-  String base =
-      "content://com.android.externalstorage.documents/tree/primary%3A";
-  String documentUri = "/document/primary%3A" +
-      path.replaceAll("/", "%2F").replaceAll(" ", "%20");
-  if (isTreeUri) {
-    uri = base + path.replaceAll("/", "%2F").replaceAll(" ", "%20");
-  } else {
-    var pathSegments = path.split("/");
-    var fileName = pathSegments[pathSegments.length - 1];
-    var directory = path.split("/$fileName")[0];
-    uri = base +
-        directory.replaceAll("/", "%2F").replaceAll(" ", "%20") +
-        documentUri;
-  }
-  return uri;
+    String uri = "";
+    String base =
+        "content://com.android.externalstorage.documents/tree/primary%3A";
+    String documentUri = "/document/primary%3A" +
+        path.replaceAll("/", "%2F").replaceAll(" ", "%20");
+    if (isTreeUri) {
+      uri = base + path.replaceAll("/", "%2F").replaceAll(" ", "%20");
+    } else {
+      var pathSegments = path.split("/");
+      var fileName = pathSegments[pathSegments.length - 1];
+      var directory = path.split("/$fileName")[0];
+      uri = base +
+          directory.replaceAll("/", "%2F").replaceAll(" ", "%20") +
+          documentUri;
+    }
+    return uri;
   }
 
   @override
@@ -122,7 +120,7 @@ class _HomeState extends State<Home>{
     setUpLogs();
   }
 
-  void getWifiIP() async{
+  Future<void> getWifiIP() async{
     wifiIPv4 = null;
     //Handling Wifi IP Address
     debugPrint("Interfaces Detected ${NetworkInterface.list()}");
@@ -190,7 +188,7 @@ class _HomeState extends State<Home>{
 
   startServer() async{
     
-    getWifiIP();
+    await getWifiIP();
 
     debugPrint("User inputted dir ${dirController.text}");
     debugPrint("User inputted port ${portController.text}");
@@ -210,12 +208,10 @@ class _HomeState extends State<Home>{
     
     debugPrint('isPermissionGranted ? : $isPermissionGranted');
   if (isPermissionGranted == true) {
-      debugPrint('is wifiName there ? : $wifiName');
       debugPrint('wifiIPv4 : ${wifiIPv4.toString()}');
-      FlutterLogs.logInfo(_tag, "startServer()", 'is wifiName there ? : $wifiName');
       FlutterLogs.logInfo(_tag, "startServer()", 'wifiIPv4 : ${wifiIPv4.toString()}');
     
-      if(wifiIPv4 == null){ // wifiName can be null sometimes, hence using 127.0.0.1 when no ip address has been assigned 
+      if(wifiIPv4 == null){ // wifiIPv4 can be null sometimes, hence using 127.0.0.1 when no ip address has been assigned 
         wifiIPv4 = "127.0.0.1";
       }
       HttpServer
@@ -428,7 +424,7 @@ class _HomeState extends State<Home>{
                     context: context,
                     applicationName: packageInfo.appName,
                     applicationVersion: packageInfo.version,
-                    applicationIcon: MyAppIcon(),
+                    applicationIcon: myAppIcon(),
                     children: [
                       InkWell(
                           child: RichText(
